@@ -20,4 +20,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapGet("/", () =>
+{
+    return Results.Ok(new {message="Server running! Use prefix /api for api endpoints and /api/health for checking server health"});
+});
+app.MapGet("/api/health", () =>
+{
+    return Results.Ok(new {message="API Working"});
+});
+
 app.Run();
