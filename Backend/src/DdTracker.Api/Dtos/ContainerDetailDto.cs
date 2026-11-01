@@ -10,3 +10,12 @@ public record ContainerDetailDto(
     IReadOnlyList<ContainerEventDto> Events,
     ChargeDto? Demurrage,
     ChargeDto? Detention);
+
+public record ProjectionDto(
+    int ContainerId,
+    string ContainerNo,
+    DateTime ProjectedAsOf,
+    ChargeDto? Demurrage,
+    ChargeDto? Detention,
+    decimal TotalAmount,
+    string Currency);

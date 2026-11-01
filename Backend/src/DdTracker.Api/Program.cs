@@ -1,3 +1,5 @@
+using DdTracker.Api.Application;
+using DdTracker.Api.BackgroundJobs;
 using DdTracker.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +11,11 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 
+builder.Services.AddScoped<IClock, SystemClock>();
+builder.Services.AddScoped<ContainerService>();
+builder.Services.AddScoped<AlertService>();
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddHostedService<AlertBackgroundService>();
 var app = builder.Build();
 
 // Apply migrations + seed on startup

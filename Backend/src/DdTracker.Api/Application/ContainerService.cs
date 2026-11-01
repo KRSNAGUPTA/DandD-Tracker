@@ -51,13 +51,20 @@ public class ContainerService
             var detention = ComputeCharge(c, ChargeType.Detention, asOf,
                 typeTiers.Where(t => t.ChargeType == ChargeType.Detention).ToList());
 
-            // Pick the "active" clock based on lifecycle status.
-            var active = c.Status == ContainerStatus.AtPort ? demurrage : detention;
+            ChargeDto? showClock;
+            if (c.Status == ContainerStatus.Closed)
+                showClock = detention;
+            else if ((demurrage?.Amount ?? 0m) > 0m)
+                showClock = demurrage;
+            else if ((detention?.Amount ?? 0m) > 0m)
+                showClock = detention;
+            else
+                showClock = c.Status == ContainerStatus.AtPort ? demurrage : detention;
 
-            var daysElapsed   = active?.DaysElapsed       ?? 0;
-            var freeRemaining = active?.FreeDaysRemaining ?? 0;
-            var amount        = active?.Amount            ?? 0m;
-            var currency      = active?.Currency          ?? "USD";
+            var daysElapsed = showClock?.DaysElapsed ?? 0;
+            var freeRemaining = showClock?.FreeDaysRemaining ?? 0;
+            var amount = (demurrage?.Amount ?? 0m) + (detention?.Amount ?? 0m);
+            var currency = showClock?.Currency ?? "USD";
 
             var risk = ClassifyRisk(c, demurrage, detention, freeRemaining);
 
@@ -87,14 +94,16 @@ public class ContainerService
         var order = new Dictionary<string, int>
         {
             ["Accruing"] = 0,
-            ["AtRisk"]   = 1,
-            ["Safe"]     = 2,
-            ["Closed"]   = 3
+            ["AtRisk"] = 1,
+            ["Safe"] = 2,
+            ["Closed"] = 3
         };
 
         return rows
             .OrderBy(r => order.GetValueOrDefault(r.Risk, 99))
+            .ThenByDescending(r => r.CurrentCharge)
             .ThenBy(r => r.FreeDaysRemaining)
+            .ThenByDescending(r => r.DaysElapsed)
             .ToList();
     }
 
@@ -139,6 +148,38 @@ public class ContainerService
             detention);
     }
 
+public async Task<ProjectionDto?> GetProjectionAsync(int containerId, DateTime projectedAsOf)
+{
+    var c = await _db.Containers
+        .Include(x => x.ContainerType)
+        .Include(x => x.Events)
+        .AsNoTracking()
+        .FirstOrDefaultAsync(x => x.Id == containerId);
+
+    if (c is null) return null;
+
+    var tiers = await _db.TariffTiers.AsNoTracking()
+        .Where(t => t.ContainerTypeId == c.ContainerTypeId)
+        .ToListAsync();
+
+    var demurrage = ComputeCharge(c, ChargeType.Demurrage, projectedAsOf,
+        tiers.Where(t => t.ChargeType == ChargeType.Demurrage).ToList());
+
+    var detention = ComputeCharge(c, ChargeType.Detention, projectedAsOf,
+        tiers.Where(t => t.ChargeType == ChargeType.Detention).ToList());
+
+    var total = (demurrage?.Amount ?? 0m) + (detention?.Amount ?? 0m);
+
+    return new ProjectionDto(
+        c.Id,
+        c.ContainerNo,
+        projectedAsOf,
+        demurrage,
+        detention,
+        total,
+        demurrage?.Currency ?? detention?.Currency ?? "USD");
+}
+
     // POST /api/containers/{id}/events
     public async Task<ContainerDetailDto> RecordEventAsync(int containerId, CreateEventRequest req)
     {
@@ -162,9 +203,9 @@ public class ContainerService
 
         c.Status = eventType switch
         {
-            EventType.GatedOut      => ContainerStatus.OutForDelivery,
+            EventType.GatedOut => ContainerStatus.OutForDelivery,
             EventType.EmptyReturned => ContainerStatus.Closed,
-            _                       => c.Status
+            _ => c.Status
         };
 
         await _db.SaveChangesAsync();
@@ -217,7 +258,7 @@ public class ContainerService
 
         // Demurrage: Discharged → GatedOut.   Detention: GatedOut → EmptyReturned.
         var startType = chargeType == ChargeType.Demurrage ? EventType.Discharged : EventType.GatedOut;
-        var endType   = chargeType == ChargeType.Demurrage ? EventType.GatedOut  : EventType.EmptyReturned;
+        var endType = chargeType == ChargeType.Demurrage ? EventType.GatedOut : EventType.EmptyReturned;
 
         var start = c.Events.FirstOrDefault(e => e.EventType == startType)?.OccurredAt;
         if (start is null) return null;   // clock never started
