@@ -4,14 +4,21 @@ using DdTracker.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
-builder.Services.AddControllers();
+
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -24,9 +31,9 @@ builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHostedService<AlertBackgroundService>();
 
 
+
 var app = builder.Build();
 app.UseCors();
-
 // Apply migrations + seed on startup
 using (var scope = app.Services.CreateScope())
 {
@@ -41,7 +48,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// app.UseHttpsRedirection();  // disabled: Angular dev + API both HTTP
 
 app.UseAuthorization();
 
