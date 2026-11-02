@@ -1,1 +1,61 @@
-<p>dashboard works!</p>
+<div class="bg-slate-200 min-h-screen p-6">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold">Econship's D&D Tracker</h1>
+  </div>
+
+  @if (loading()) {
+    <p class="text-slate-600">Loading...</p>
+  } @else if (error()) {
+    <p class="text-red-600">{{ error() }}</p>
+  } @else if (summary(); as s) {
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <!-- Total Containers -->
+      <div
+        class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between min-h-[100px]"
+      >
+        <div class="text-3xl font-bold text-slate-900">{{ s.totalContainers }}</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 mt-2">Total Containers</div>
+      </div>
+      <!-- Accruing -->
+      <div
+        class="bg-white rounded-xl border border-slate-200 border-l-4 border-l-red-500 p-4 flex flex-col justify-between min-h-[100px]"
+      >
+        <div class="text-3xl font-bold text-slate-900">{{ s.accruing }}</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 mt-2">Accruing</div>
+      </div>
+      <!-- At Risk -->
+      <div
+        class="bg-white rounded-xl border border-slate-200 border-l-4 border-l-amber-500 p-4 flex flex-col justify-between min-h-[100px]"
+      >
+        <div class="text-3xl font-bold text-slate-900">{{ s.atRisk }}</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 mt-2">At Risk</div>
+      </div>
+
+      <!-- Safe -->
+      <div
+        class="bg-white rounded-xl border border-slate-200 border-l-4 border-l-green-500 p-4 flex flex-col justify-between min-h-[100px]"
+      >
+        <div class="text-3xl font-bold text-slate-900">{{ s.safe }}</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 mt-2">Safe</div>
+      </div>
+
+      <!-- Closed -->
+      <div
+        class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between min-h-[100px]"
+      >
+        <div class="text-3xl font-bold text-slate-900">{{ s.closed }}</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 mt-2">Closed</div>
+      </div>
+
+      <!-- Total Accrued -->
+      <div
+        class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between min-h-[100px]"
+      >
+        <div class="text-3xl font-bold text-slate-900">${{ s.totalAccrued }}</div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 mt-2">Total Accrued</div>
+      </div>
+    </div>
+  }
+
+  <app-container-table></app-container-table>
+</div>

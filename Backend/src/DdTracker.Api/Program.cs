@@ -4,7 +4,13 @@ using DdTracker.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod();
+    });
+});
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -16,7 +22,10 @@ builder.Services.AddScoped<ContainerService>();
 builder.Services.AddScoped<AlertService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddHostedService<AlertBackgroundService>();
+
+
 var app = builder.Build();
+app.UseCors();
 
 // Apply migrations + seed on startup
 using (var scope = app.Services.CreateScope())
