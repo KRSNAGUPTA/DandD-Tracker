@@ -1,3 +1,3 @@
 export const environment = {
-    apiUrl:'http://localhost:5028'
+    apiUrl:'https://backend-dandd-tracker.onrender.com'
 };
